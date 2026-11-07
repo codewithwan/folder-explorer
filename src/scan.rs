@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
 use std::io;
-use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering::Relaxed};
@@ -20,11 +19,23 @@ pub struct Times {
 }
 
 impl Times {
+    #[cfg(windows)]
     fn of(meta: &fs::Metadata) -> Self {
+        use std::os::windows::fs::MetadataExt;
         Self {
             modified: meta.last_write_time(),
             created: meta.creation_time(),
             accessed: meta.last_access_time(),
+        }
+    }
+
+    #[cfg(not(windows))]
+    fn of(meta: &fs::Metadata) -> Self {
+        use crate::fsmeta::to_ticks;
+        Self {
+            modified: to_ticks(meta.modified().ok()),
+            created: to_ticks(meta.created().ok()),
+            accessed: to_ticks(meta.accessed().ok()),
         }
     }
 }
@@ -78,10 +89,10 @@ impl DirNode {
 
     fn push_entry(&mut self, name: &OsStr, meta: &fs::Metadata) -> u64 {
         self.names.extend_from_slice(name.as_encoded_bytes());
-        let size = meta.file_size();
+        let size = crate::fsmeta::size(meta);
         self.entries.push(FileEntry {
             name_end: self.names.len() as u32,
-            attrs: meta.file_attributes(),
+            attrs: crate::fsmeta::attrs(meta, name),
             size,
             times: Times::of(meta),
         });
@@ -174,7 +185,7 @@ impl SubDir {
         Ok(Self {
             name: name.into(),
             path: path.to_path_buf(),
-            attrs: meta.file_attributes(),
+            attrs: crate::fsmeta::attrs(&meta, name),
             times: Times::of(&meta),
         })
     }
@@ -207,7 +218,7 @@ pub fn read_level(dir: &SubDir) -> Result<Level, io::Error> {
         }) {
             Ok((meta, file_type, entry)) => {
                 let name = entry.file_name();
-                let attrs = meta.file_attributes();
+                let attrs = crate::fsmeta::attrs(&meta, &name);
                 if is_link(&entry, file_type, attrs) {
                     node.add_link(&name, &meta);
                 } else if file_type.is_dir() {

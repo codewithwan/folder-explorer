@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Folder Explorer is a Windows-only file explorer (Rust + [Slint](https://slint.dev)) that shows the real size of every folder. Windows APIs are used directly (`windows`, `windows-sys`), so it only builds on Windows with the MSVC toolchain. Requires Rust 1.92+ (edition 2024).
+Folder Explorer is a file explorer (Rust + [Slint](https://slint.dev)) that shows the real size of every folder. Windows is the primary, full-featured platform and uses Win32 APIs directly (`windows`, `windows-sys`). macOS is supported as a native port. Requires Rust 1.92+ (edition 2024); the Windows build also needs the MSVC toolchain.
+
+**Cross-platform layout.** OS integration is split by `cfg`: `platform.rs` and `icons.rs` are thin dispatchers that `#[path]`-include `*_windows.rs` (unchanged Win32 code, `cfg(windows)`) or `*_unix.rs` (macOS/Unix port, `cfg(not(windows))`). `fsmeta.rs` abstracts file metadata (size, Windows-style attribute bitmask, FILETIME timestamps) so `scan.rs`/`app.rs` are OS-agnostic. The windows crates, `winresource` and the `windows_subsystem` attribute are all gated to `cfg(windows)`; `libc`/`trash`/`rfd`/`arboard` are gated to `cfg(unix)`. The inline `#[cfg(test)]` modules still use Win32 APIs, so `cargo test` is Windows-only. See README "Platform support" for the macOS feature gaps (generic icons, in-app-only clipboard, borderless frame).
 
 ## Commands
 
@@ -22,7 +24,7 @@ There is no CI, lint config or rustfmt config. Tests are inline `#[cfg(test)]` m
 - `app.rs` holds `App` (all state), wrapped as `Shared = Rc<RefCell<App>>`. Workers never touch it: they send `Message` variants over an `mpsc` channel, and a 16 ms `pump` timer on the UI thread drains them. Messages carry a `scan` / `search` / `run` id and stale ones are dropped, which is how cancellation and navigation races are handled. `wire()` connects Slint callbacks; `run_action` dispatches string-named menu/command actions.
 - `scan.rs` is the parallel scanner. Each rayon task builds its own `DirNode` subtree (no shared locks) and `Cache` keeps finished trees so browsing into a scanned folder needs no rescan. One scanned tree feeds sizes, search and summaries.
 - `query.rs` searches and summarizes the in-memory tree (no disk access). `list.rs` is the virtual `ListModel` (sorting, selection) so huge result sets cost nothing until scrolled into view. `item.rs` defines rows and `Column`.
-- `icons.rs` loads shell icons/thumbnails on their own threads, only for visible rows. `sidebar.rs` is the tree plus pinned quick-access folders. `platform.rs` is all Win32 integration (drives, clipboard, shell operations, window frame, dark menus). `settings.rs` persists to `%APPDATA%\FolderExplorer\settings.ini`.
+- `icons.rs` loads shell icons/thumbnails on their own threads, only for visible rows (Windows); the macOS `icons_unix.rs` is a stub that leaves rows to the UI's generic folder/file fallback. `sidebar.rs` is the tree plus pinned quick-access folders. `platform.rs` is all OS integration (drives, clipboard, shell operations, window frame, dark menus). `settings.rs` persists to `%APPDATA%\FolderExplorer\settings.ini` on Windows and `~/Library/Application Support/FolderExplorer/settings.ini` on macOS.
 - `ui/` is the Slint layer: `app.slint` (`AppWindow`, custom `TitleBar`), `panes.slint` (sidebar, drives view, summary, errors), `file_table.slint` / `file_grid.slint` (details vs icon views), `controls.slint`, `theme.slint`, `types.slint` (structs shared with Rust). Rust sees them through `ui::*` (`slint::include_modules!()` in `main.rs`).
 
 ## Non-obvious constraints

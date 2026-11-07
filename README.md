@@ -1,6 +1,6 @@
 # Folder Explorer
 
-A fast Windows file explorer that shows the real size of every folder. Written in Rust with a [Slint](https://slint.dev) interface.
+A fast file explorer that shows the real size of every folder. Written in Rust with a [Slint](https://slint.dev) interface. Windows is the primary platform; macOS is supported as a native port (see [Platform support](#platform-support)).
 
 Browse like you would in File Explorer, and every folder shows its true size, file count and folder count, so you can see at a glance what is filling your disk.
 
@@ -49,23 +49,58 @@ Grab the latest `folder-explorer-*-windows-x64.zip` from the [Releases](https://
 
 ## Build
 
-You need [Rust](https://rustup.rs) 1.92 or newer and the MSVC build tools.
+You need [Rust](https://rustup.rs) 1.92 or newer. On Windows you also need the MSVC build tools.
 
 ```bash
 cargo run --release
 ```
 
-Open a specific folder at startup:
+Open a specific folder at startup (Windows):
 
 ```bash
 cargo run --release -- "C:\Users"
 ```
 
-Run the tests:
+Open a specific folder at startup (macOS):
+
+```bash
+cargo run --release -- "/Users"
+```
+
+Run the tests (Windows only; see [Platform support](#platform-support)):
 
 ```bash
 cargo test
 ```
+
+## Platform support
+
+The Windows build uses the Win32 APIs directly (shell icons and thumbnails,
+Explorer-compatible clipboard, Recycle Bin, custom DWM window frame) and is the
+full-featured target.
+
+macOS is supported as a native port. All OS integration lives behind
+`cfg(windows)` / `cfg(unix)`: the macOS side is in `src/platform_unix.rs` and
+`src/icons_unix.rs`, with a shared metadata shim in `src/fsmeta.rs`. On macOS:
+
+- Scanning, folder sizes, all views, search, filters, summaries, checksums and
+  export work the same as on Windows.
+- Drives list the root volume and everything under `/Volumes`; disk usage comes
+  from `statfs`.
+- File actions map to macOS: open and "reveal in Finder" via `open`, "Get Info"
+  via Finder, move to Trash via the `trash` crate, and rename that refuses to
+  overwrite. Dialogs are native (via `rfd`).
+- Quick access lists your home folders (Desktop, Documents, Downloads,
+  Pictures, Music, Movies).
+
+Current limitations on macOS (first usable port):
+
+- File and app icons and thumbnails fall back to generic folder/file glyphs.
+- Cut / copy / paste of files works inside the app but does not interoperate
+  with Finder.
+- The window uses the app's own borderless title bar (no native traffic-light
+  buttons).
+- `cargo test` is Windows-only; the inline test modules use Win32 APIs.
 
 ## Keyboard shortcuts
 
@@ -100,12 +135,17 @@ cargo test
 | `src/app.rs` | Application state and background jobs |
 | `src/icons.rs` | Shell icons and thumbnails, loaded in the background |
 | `src/file_ops.rs` | Name checks and new folders |
-| `src/platform.rs` | Windows integration |
+| `src/platform.rs` | Per-OS dispatcher (`platform_windows.rs` / `platform_unix.rs`) |
+| `src/icons.rs` | Per-OS dispatcher (`icons_windows.rs` / `icons_unix.rs`) |
+| `src/fsmeta.rs` | Cross-platform file metadata (size, attributes, timestamps) |
 | `ui/` | Slint interface and icons |
 
 ## Settings
 
-Settings are stored in `%APPDATA%\FolderExplorer\settings.ini`.
+Settings are stored in:
+
+- Windows: `%APPDATA%\FolderExplorer\settings.ini`
+- macOS: `~/Library/Application Support/FolderExplorer/settings.ini`
 
 ## License
 

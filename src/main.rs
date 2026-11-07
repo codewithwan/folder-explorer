@@ -1,10 +1,11 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
 mod app;
 mod chart;
 mod export;
 mod file_ops;
 mod format;
+mod fsmeta;
 mod hash;
 mod icons;
 mod item;

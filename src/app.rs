@@ -22,7 +22,6 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io;
 use std::ops::Range;
-use std::os::windows::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 use std::rc::{self, Rc};
 use std::sync::atomic::{AtomicBool, Ordering::Relaxed};
@@ -231,7 +230,11 @@ fn list_subfolders(parent: &Path, show_hidden: bool) -> Vec<(OsString, u32)> {
     entries
         .flatten()
         .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
-        .filter_map(|entry| Some((entry.file_name(), entry.metadata().ok()?.file_attributes())))
+        .filter_map(|entry| {
+            let name = entry.file_name();
+            let attrs = crate::fsmeta::attrs(&entry.metadata().ok()?, &name);
+            Some((name, attrs))
+        })
         .filter(|(_, attrs)| show_hidden || attrs & ATTR_HIDDEN == 0)
         .collect()
 }

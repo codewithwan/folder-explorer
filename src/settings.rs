@@ -75,9 +75,25 @@ impl Settings {
         }
     }
 
+    #[cfg(windows)]
+    fn config_dir() -> Option<PathBuf> {
+        std::env::var_os("APPDATA").map(PathBuf::from)
+    }
+
+    #[cfg(target_os = "macos")]
+    fn config_dir() -> Option<PathBuf> {
+        std::env::var_os("HOME").map(|home| PathBuf::from(home).join("Library").join("Application Support"))
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    fn config_dir() -> Option<PathBuf> {
+        std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
+    }
+
     fn file() -> Option<PathBuf> {
-        let base = std::env::var_os("APPDATA")?;
-        Some(PathBuf::from(base).join("FolderExplorer").join("settings.ini"))
+        Some(Self::config_dir()?.join("FolderExplorer").join("settings.ini"))
     }
 
     pub fn load() -> Self {
