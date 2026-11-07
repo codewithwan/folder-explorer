@@ -5,6 +5,7 @@ import { CaptionButton, CommandButton, DimLabel, IconButton, IndeterminateBar, L
 import { FileGrid } from "file_grid.slint";
 import { FileTable } from "file_table.slint";
 import { DrivesView, ErrorPanel, Sidebar, SummaryPane } from "panes.slint";
+import { StorageDock } from "storagedock.slint";
 
 export { ColumnChoice, ColumnInfo, Crumb, DriveCard, FileRow, SummaryRow, TreemapTile, TreeRow }
 
@@ -1270,6 +1271,13 @@ export component AppWindow inherits Window {
                                 rename-cancelled => { root.rename-cancelled(); }
                             }
                         }
+                    }
+
+                    StorageDock {
+                        drives: root.drives;
+                        x: (parent.width - self.width) / 2;
+                        y: 12px;
+                        open-location(path) => { root.open-location(path); }
                     }
                 }
 
