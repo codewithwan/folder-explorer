@@ -1,20 +1,12 @@
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
 mod app;
-mod chart;
-mod export;
-mod file_ops;
-mod format;
-mod fsmeta;
-mod hash;
 mod icons;
-mod item;
-mod list;
+mod model;
 mod platform;
-mod query;
-mod scan;
 mod settings;
 mod sidebar;
+mod util;
 
 mod ui {
     slint::include_modules!();

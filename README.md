@@ -126,18 +126,18 @@ Current limitations on macOS (first usable port):
 
 ## Project layout
 
+The crate is organized in layers (each depends only on the ones below it):
+`util` → `platform` / `icons` → `model` → `app` → `ui`. Every module is kept
+small (roughly ≤ 300 lines), with its tests in a sibling `tests.rs`.
+
 | Path | Purpose |
 | --- | --- |
-| `src/scan.rs` | Parallel scanner and the cache of scanned trees |
-| `src/query.rs` | In-memory search and summaries |
-| `src/list.rs` | Virtual list model: sorting and selection |
-| `src/item.rs` | List rows and column definitions |
-| `src/app.rs` | Application state and background jobs |
-| `src/icons.rs` | Shell icons and thumbnails, loaded in the background |
-| `src/file_ops.rs` | Name checks and new folders |
-| `src/platform.rs` | Per-OS dispatcher (`platform_windows.rs` / `platform_unix.rs`) |
-| `src/icons.rs` | Per-OS dispatcher (`icons_windows.rs` / `icons_unix.rs`) |
-| `src/fsmeta.rs` | Cross-platform file metadata (size, attributes, timestamps) |
+| `src/util/` | Leaf helpers: `format`, `fsmeta` (cross-platform file metadata), `hash`, `names`, `export` |
+| `src/platform/` | OS integration — `mod.rs` dispatcher over `windows/` and `unix/`, each split by concern (time, window, drives, shell/fileops, clipboard, dialogs) |
+| `src/icons/` | Icon loading — `windows/` (shell icons + thumbnails: `source`, `image`, `store`) and `unix.rs` (stub) |
+| `src/model/` | In-memory data, no UI: `scan/` (parallel scanner + cache), `query/` (search + summaries), `list/` (virtual list model), `item/` (rows + columns), `chart/` |
+| `src/sidebar/` | Navigation pane: the tree plus pinned quick-access folders |
+| `src/app/` | Application state and background jobs, one `impl App` split by concern (`navigation`, `scanning`, `search`, `summary`, `hashing`, `view`, `places`, `fileops`, `status`, `wiring`, `lifecycle`) |
 | `ui/` | Slint interface and icons |
 
 ## Settings

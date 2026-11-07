@@ -1,6 +1,6 @@
-use crate::format::Unit;
-use crate::item::Column;
-use crate::list::View;
+use crate::util::format::Unit;
+use crate::model::item::Column;
+use crate::model::list::View;
 use crate::platform::WindowPlacement;
 use std::collections::HashMap;
 use std::fs;
